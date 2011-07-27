@@ -1,0 +1,95 @@
+﻿<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Event Map</title>
+    <style type="text/css">
+      html, body { height: 100%; margin: 0px; padding: 0px;font-family:Arial; }
+      #map_canvas { height: 100% }
+    </style>
+
+    <script language="javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+    <script src='http://maps.google.com/maps/api/js?sensor=true' type='text/javascript'></script>
+
+</head>
+<body>
+ <div id="map_canvas" style="width: 100%; height: 100%"></div>
+
+ <script language="javascript" type="text/javascript">
+     var map;
+     var apiToken; //YOUR API TOKEN
+     var infowindow;
+
+      $(document).ready(function () {
+          initialize();
+     });
+
+      function initialize() {
+         var latlng = new google.maps.LatLng(40.0260, -105.2852);
+         var myOptions = {
+             zoom: 4,
+             center: latlng,
+             mapTypeId: google.maps.MapTypeId.ROADMAP
+         };
+         map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+         geocoder = new google.maps.Geocoder();
+         GetPublicEvents();
+     }
+
+     function GetPublicEvents() {
+        $.ajax(
+            {
+                url: 'https://www.regonline.com/webservices/default.asmx/GetPublicEvents',
+                dataType: 'jsonp',
+                data:
+                {
+                    //Apply filters
+                    filter: JSON.stringify('Channel == "Professional & Continuing Education"'),
+                    orderBy: JSON.stringify(''),
+                    APIToken: encodeURI(apiToken)
+                },
+                success: function (response) {
+                    if (response.d.Success) {
+                        bindEvents(response.d.Data);
+                    }
+                }
+            });
+        }
+     function bindEvents(objs) {
+         $.each(objs, function (i, e) {
+             var address = e.City + ", " + e.State;
+             var date = (e.StartDate) ? eval(e.StartDate.replace(/\/Date\((\d+)\)\//gi, "new Date($1)")) : "";
+             var info = "<h4><a href='http://www.regonline.com/" + e.ID + "'>" + e.Title + "</a></h4>" + date + "<br/>" + address;
+             dropMarker(e);
+         });
+     }
+     function dropMarker(e) {
+         if (e.Longitude != null && e.Latitude != null) {
+             var loc = new google.maps.LatLng(e.Latitude, e.Longitude);
+             var info = getEventInfo(e);
+             var marker = new google.maps.Marker({
+                 map: map,
+                 title: "",
+                 position: loc
+             });
+             //markers.push(marker);
+             if (!infowindow) {
+                 infowindow = new google.maps.InfoWindow({});
+             }
+             google.maps.event.addListener(marker, 'click', function () {
+                 infowindow.setContent(info);
+                 infowindow.open(map, marker);
+             });
+         }
+     }
+     function getEventInfo(e) {
+         var address = e.City + ", " + e.State;
+         var date = (e.StartDate) ? eval(e.StartDate.replace(/\/Date\((\d+)\)\//gi, "new Date($1)")) : "";
+         var regs = (e.TotalRegistrations == null) ? 0 : e.TotalRegistrations;
+         var info = "<h4><a href='http://www.regonline.com/" + e.ID + "'>" + e.Title + "</a></h4>" + e.MediaType + ":" + e.Channel + "<br/>" + "<br/>" + date + "<br/>" + address + "<br>Registrations:" + regs;
+         return info;
+     }
+    </script>
+  
+</body>
+</html>

@@ -1,0 +1,1 @@
+This is an example of calling the GetPublicEvents web method via JSONP, filtering to a set of events and binding to a google map.
